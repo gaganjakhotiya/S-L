@@ -1,0 +1,21 @@
+{
+  "name": "snake-n-ladder",
+  "version": "1.0.0",
+  "main": "index.ts",
+  "author": "Gagan",
+  "license": "MIT",
+  "dependencies": {
+    "@types/react": "^16.0.20",
+    "@types/react-dom": "^16.0.2",
+    "react": "^16.0.0",
+    "react-dom": "^16.0.0",
+    "ts-loader": "^3.1.1",
+    "typescript": "^2.6.1",
+    "webpack": "^3.8.1",
+    "webpack-dev-server": "^2.9.4"
+  },
+  "scripts": {
+    "build": "yarn && node ./node_modules/webpack/bin/webpack.js",
+    "start": "yarn && node ./node_modules/webpack-dev-server/bin/webpack-dev-server.js"
+  }
+}
