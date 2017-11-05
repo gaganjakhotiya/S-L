@@ -1,8 +1,12 @@
+import { rolldice } from '../utils'
+
 type IWormhole = {
     to: number
     from: number
     type: WormholeType
 }
+
+export type IMove = 'skip' | 'draw' | 'snake' | 'ladder'
 
 const MAX_DRAW_VALUE = 6
 
@@ -23,10 +27,6 @@ export default class Board {
         if (length < 1 || breadth < 1)
             throw "Invalid board dimension"
         this.size = length * breadth
-    }
-
-    private rolldice() {
-        return Math.floor(Math.random() * MAX_DRAW_VALUE) + 1
     }
 
     public lock() {
@@ -67,7 +67,7 @@ export default class Board {
     }
 
     public draw(standingPosition: number) {
-        const drawnValue = this.rolldice()
+        const drawnValue = rolldice(MAX_DRAW_VALUE)
 
         let newPosition = standingPosition + drawnValue
         if (newPosition > this.size)
@@ -76,7 +76,7 @@ export default class Board {
             newPosition = this.wormholes[newPosition] || newPosition
 
         const distanceCovered = newPosition - standingPosition
-        const move = distanceCovered === drawnValue
+        const move: IMove = distanceCovered === drawnValue
             ? 'draw'
             : distanceCovered === 0
                 ? 'skip'
