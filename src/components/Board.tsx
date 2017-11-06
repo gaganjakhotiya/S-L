@@ -1,43 +1,44 @@
 import * as React from 'react'
-import Player from '../models/Player'
+import PlayerModel from '../models/Player'
+import BoardModel from '../models/Board'
 
 
-interface IProps {
-    length: number
-    breadth: number
-    playersMap: { [position: number]: Player[] }
-    wormholes: { [from: number]: number }
+type IBoardBlock = {
+    row: number
+    col: number
+    players: PlayerModel[]
+    currentBlockNumber: number
+    wormholeEndPosition: number
+    wormholeStartPosition: number
 }
 
+interface IProps {
+    board: BoardModel
+    playersMap: {
+        [position: number]: PlayerModel[]
+    }
+}
+
+
 export default function Board(props: IProps) {
-    const { length, breadth, wormholes, playersMap } = props
-    const wormholesReverseMap = Object.keys(props.wormholes).reduce(
-        (reverseMap, from, index) => ((reverseMap[props.wormholes[from]] = from), reverseMap), {}
-    )
+    const { board, playersMap } = props
+    const wormholesFromMap = board.getWormholesFromMap()
+    const wormholesToMap = board.getWormholesToMap()
 
-    let currentBlockNumber = length * breadth
     let blockRows = []
+    let currentBlockNumber = board.length * board.breadth
 
-    for (let row = 0; row < length; row++) {
+    for (let row = 0; row < board.length; row++) {
         let blockCols = []
-        for (let col = 0; col < breadth; col++) {
+        for (let col = 0; col < board.breadth; col++) {
             const key = col
             const players = playersMap[currentBlockNumber]
-            const wormholeEndPosition = wormholes[currentBlockNumber]
-            const wormholeStartPosition = wormholesReverseMap[currentBlockNumber]
-
-            blockCols.push(
-                <BoardBlock {...{
-                    key,
-                    row,
-                    col,
-                    players,
-                    currentBlockNumber,
-                    wormholeEndPosition,
-                    wormholeStartPosition,
-                }} />
-            )
-
+            const wormholeEndPosition = wormholesFromMap[currentBlockNumber]
+            const wormholeStartPosition = wormholesToMap[currentBlockNumber]
+            const props = {
+                key, row, col, players, currentBlockNumber, wormholeEndPosition, wormholeStartPosition
+            }
+            blockCols.push(<BoardBlock {...props} />)
             currentBlockNumber--
         }
         blockRows.push(
@@ -50,25 +51,8 @@ export default function Board(props: IProps) {
     return <div className="blocks">{blockRows}</div>
 }
 
-
-type IBoardBlock = {
-    row: number
-    col: number
-    players: Player[]
-    currentBlockNumber: number
-    wormholeEndPosition: number
-    wormholeStartPosition: number
-}
-
 function BoardBlock(props: IBoardBlock) {
-    const {
-        row,
-        col,
-        players,
-        currentBlockNumber,
-        wormholeEndPosition,
-        wormholeStartPosition
-    } = props
+    const { row, col, players, currentBlockNumber, wormholeEndPosition, wormholeStartPosition } = props
 
     const className = wormholeStartPosition
         ? 'yellow'
@@ -92,7 +76,6 @@ function BoardBlock(props: IBoardBlock) {
     )
 }
 
-
-function PlayerSticker({ player }: { player: Player }) {
+function PlayerSticker({ player }: { player: PlayerModel }) {
     return <div className="player">{player.name.substr(0, 2)}</div>
 }

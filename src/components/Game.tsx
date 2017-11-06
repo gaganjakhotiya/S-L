@@ -103,10 +103,8 @@ export default class Game extends React.Component<IProps, IState> {
                             </div>
                             <div className="fly-right">
                                 <Board
-                                    length={game.board.length}
-                                    breadth={game.board.breadth}
+                                    board={game.board}
                                     playersMap={playersMap}
-                                    wormholes={game.board.getWormholesMap()}
                                 />
                             </div>
                         </div>

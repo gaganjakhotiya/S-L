@@ -18,7 +18,8 @@ export enum WormholeType {
 export default class Board {
     public readonly size
     private _lock = false
-    private wormholes: { [from: number]: number } = {}
+    private wormholesFromMap: { [from: number]: number } = {}
+    private wormholesToMap: { [to: number]: number } = {}
 
     constructor(
         public readonly length: number,
@@ -33,16 +34,20 @@ export default class Board {
         this._lock = true
     }
 
-    public getWormholesMap() {
-        return { ...this.wormholes }
+    public getWormholesFromMap() {
+        return { ...this.wormholesFromMap }
+    }
+
+    public getWormholesToMap() {
+        return { ...this.wormholesToMap }
     }
 
     public getAllWormholes(): IWormhole[] {
-        return Object.keys(this.wormholes).map(
+        return Object.keys(this.wormholesFromMap).map(
             (from, index) => ({
                 from: Number(from),
-                to: this.wormholes[from],
-                type: from < this.wormholes[from]
+                to: this.wormholesFromMap[from],
+                type: from < this.wormholesFromMap[from]
                     ? WormholeType.LADDER
                     : WormholeType.SNAKE
             })
@@ -56,39 +61,44 @@ export default class Board {
             throw `Wormhole start position out of bound: ${from}`
         if (to < 1 || to > this.size)
             throw `Wormhole end position out of bound: ${to}`
-        if (typeof this.wormholes[from] !== 'undefined')
+        if (typeof this.wormholesFromMap[from] !== 'undefined')
             throw `Multiple wormholes from position: ${from}`
-        if (typeof this.wormholes[to] !== 'undefined')
+        if (typeof this.wormholesFromMap[to] !== 'undefined')
             throw `Wormholes overlapping at end position: ${to}`
 
-        this.wormholes[from] = to
+        this.wormholesFromMap[from] = to
+        this.wormholesToMap[to] = from
 
         return this
+    }
+
+    private getMoveType(drawnValue: number, distanceCovered: number): IMoveType {
+        return distanceCovered === 0
+            ? 'skip'
+            : drawnValue === MAX_DRAW_VALUE
+                ? 'roll-again'
+                : distanceCovered === drawnValue
+                    ? 'draw'
+                    : distanceCovered > 0
+                        ? 'ladder'
+                        : 'snake'
+    }
+
+    private getNewPosition(drawnValue: number, fromPosition: number) {
+        const newStep = fromPosition + drawnValue
+        return newStep > this.size
+            ? fromPosition
+            : drawnValue === MAX_DRAW_VALUE
+                ? newStep
+                : this.wormholesFromMap[newStep] || newStep
     }
 
     public draw(player: Player): IDrawData {
         const standingPosition = player.getPosition()
         const fromPosition = player.getIntermediatePosition()
         const drawnValue = rolldice(MAX_DRAW_VALUE)
-
-        let newPosition = fromPosition + drawnValue
-        newPosition = newPosition > this.size
-            ? fromPosition
-            : drawnValue === MAX_DRAW_VALUE
-                ? newPosition
-                : this.wormholes[newPosition] || newPosition
-
-        const distanceCovered = newPosition - fromPosition
-        const moveType: IMoveType =
-            distanceCovered === 0
-                ? 'skip'
-                : drawnValue === MAX_DRAW_VALUE
-                    ? 'roll-again'
-                    : distanceCovered === drawnValue
-                        ? 'draw'
-                        : distanceCovered > 0
-                                ? 'ladder'
-                                : 'snake'
+        const newPosition = this.getNewPosition(drawnValue, fromPosition)
+        const moveType = this.getMoveType(drawnValue, newPosition - fromPosition)
 
         return {
             moveType,
