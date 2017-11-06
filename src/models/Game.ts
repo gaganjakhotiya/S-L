@@ -1,7 +1,6 @@
 import Board from './Board'
 import Player, { IPlayerData } from './Player'
 
-
 export default class Game {
     private activePlayerIndex = 0
     private finishedPlayers: Player[] = []
@@ -19,15 +18,14 @@ export default class Game {
         return this.unfinishedPlayers.length === 0 ? 'finished' : 'in_progess'
     }
 
-    public getActivePlayerData() {
-        const activePlayer = this.unfinishedPlayers[this.activePlayerIndex]
-        return activePlayer ? activePlayer.getJSON() : null
+    public getActivePlayer() {
+        return this.unfinishedPlayers[this.activePlayerIndex]
     }
 
     public getPlayers() {
-        const activePlayer = this.unfinishedPlayers[this.activePlayerIndex]
+        const activePlayer = this.getActivePlayer()
         return [...this.finishedPlayers, ...this.unfinishedPlayers].map(
-            player => ({...player.getJSON(), active: activePlayer === player})
+            player => ({player, active: activePlayer === player})
         )
     }
 
@@ -41,7 +39,7 @@ export default class Game {
 
     public playNextTurn() {
         const activePlayer = this.unfinishedPlayers[this.activePlayerIndex]
-        const { drawnValue, newPosition, move } = this.board.draw(activePlayer.position)
+        const { drawnValue, newPosition, moveType } = this.board.draw(activePlayer)
         this.updatePlayerPosition(activePlayer, newPosition)
 
         if (this.activePlayerIndex + 1 >= this.unfinishedPlayers.length) {
@@ -51,12 +49,8 @@ export default class Game {
         }
 
         return {
-            move,
+            moveType,
             drawnValue,
-            newPosition,
-            playerData: activePlayer.getJSON(),
-            rank: this.finishedPlayers.length,
-            completed: this.unfinishedPlayers.length === 0,
         }
     }
 

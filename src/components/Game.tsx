@@ -1,8 +1,10 @@
 import * as React from 'react'
 
-import { IMove } from '../models/Board'
+import { IMoveType } from '../models/Board'
 import GameModel from '../models/Game'
 import createNewGame from '../GameFactory'
+
+import { MAX_DRAW_VALUE } from '../constants'
 
 import Board from './Board'
 import Players from './Players'
@@ -17,7 +19,7 @@ interface IState {
     game: GameModel
     lastDraw: number
     players: string[]
-    move?: IMove
+    moveType?: IMoveType
 }
 
 export default class Game extends React.Component<IProps, IState> {
@@ -51,10 +53,10 @@ export default class Game extends React.Component<IProps, IState> {
 
     handleDraw = () => {
         const { game } = this.state
-        const { drawnValue, move } = game.playNextTurn()
+        const { drawnValue, moveType } = game.playNextTurn()
 
         this.setState({
-            move,
+            moveType,
             lastDraw: drawnValue,
         })
     }
@@ -68,10 +70,10 @@ export default class Game extends React.Component<IProps, IState> {
     }
 
     render() {
-        const { game, status, lastDraw, move } = this.state
+        const { game, status, lastDraw, moveType } = this.state
         const getPlayersName = status === 'init'
         const players = game && game.getPlayers()
-        const activePlayer = game && game.getActivePlayerData()
+        const activePlayer = game && game.getActivePlayer()
 
         return (
             <div>
@@ -85,11 +87,11 @@ export default class Game extends React.Component<IProps, IState> {
                             <p>Players</p>
                             <ul>
                                 {players.map(
-                                    (player, index) => (
-                                        <li key={index} className={player.active ? 'active' : ''}>
+                                    ({player, active}, index) => (
+                                        <li key={index} className={active ? 'active' : ''}>
                                             <span>{player.name} : {player.position}</span>
                                             {player.position !== game.board.size && (
-                                                <span> (Perfect Draw: {game.board.getNextBestMove(player.position)})</span>
+                                                <span> (Perfect Draw: {game.board.getNextBestMove(player)})</span>
                                             )}
                                         </li>
                                     )
@@ -98,7 +100,7 @@ export default class Game extends React.Component<IProps, IState> {
 
                             <Dice onClick={this.handleDraw} value={lastDraw}/>
 
-                            <MoveMessage move={move} drawnValue={lastDraw} />
+                            <MoveMessage move={moveType} drawnValue={lastDraw} />
 
                             <div className="button-group">
                                 <button onClick={this.handleRestart}>Restart Game</button>
@@ -120,14 +122,15 @@ export default class Game extends React.Component<IProps, IState> {
     }
 }
 
-function MoveMessage({move, drawnValue}: {move: IMove, drawnValue: number}) {
+function MoveMessage({move, drawnValue}: {move: IMoveType, drawnValue: number}) {
     const message = (function(){
         if (!drawnValue)
             return null
         switch (move) {
             case 'draw': return `Moved by ${drawnValue} step(s).`
             case 'skip': return `Didn't move.`
-            case 'snake': return `Got bitten by snake`
+            case 'roll-again': return `Scored a ${MAX_DRAW_VALUE}. Roll again!`
+            case 'snake': return `Got bitten by a snake`
             case 'ladder': return `Took a ladder`
             default: return null
         }
