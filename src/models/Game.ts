@@ -6,6 +6,7 @@ export default class Game {
     private activePlayerIndex = 0
     private finishedPlayers: Player[] = []
     private unfinishedPlayers: Player[]
+    public playersMap: {[position: number]: Player[]} = {}
 
     constructor(
         public readonly board: Board,
@@ -47,16 +48,26 @@ export default class Game {
         }
     }
 
+    private updatePlayerMap(player: Player, drawData: IDrawData) {
+        if (drawData.standingPosition !== 0) {
+            const players = this.playersMap[drawData.standingPosition]
+            players.splice(players.indexOf(player), 1)
+        }
+        ;(this.playersMap[drawData.newPosition] =
+            this.playersMap[drawData.newPosition] || []).push(player)
+    }
+
     public playNextTurn() {
         const player = this.getActivePlayer()
         const drawData = this.board.draw(player)
+        const rotateStrike = this.updatePlayer(player, drawData)
 
-        this.updatePlayer(player, drawData) && this.rotateStrike()
-
-        return {
-            ...drawData,
-            distanceCovered: player.getLastDistanceCovered(),
+        if (rotateStrike) {
+            this.rotateStrike()
+            this.updatePlayerMap(player, drawData)
         }
+
+        return drawData
     }
 
     public getWinner(position: number) {

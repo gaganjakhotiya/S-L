@@ -1,6 +1,6 @@
 import * as React from 'react'
 
-import { IMoveType } from '../types.d'
+import { IMoveType, IDrawData } from '../types.d'
 import GameModel from '../models/Game'
 import createNewGame from '../GameFactory'
 
@@ -17,10 +17,8 @@ interface IProps {
 interface IState {
     status: 'init' | 'playing'
     game: GameModel
-    lastDrawValue: number
+    lastDrawData: IDrawData
     players: string[]
-    moveType?: IMoveType
-    distanceCovered?: number
 }
 
 export default class Game extends React.Component<IProps, IState> {
@@ -35,8 +33,7 @@ export default class Game extends React.Component<IProps, IState> {
             status: 'init',
             game: null,
             players: null,
-            lastDrawValue: null,
-            distanceCovered: null,
+            lastDrawData: {} as any,
         }
     }
 
@@ -45,23 +42,15 @@ export default class Game extends React.Component<IProps, IState> {
     }
 
     handleRestart = () => {
-        const { players } = this.state
-
         this.setState({
-            game: createNewGame(players),
-            lastDrawValue: null,
-            distanceCovered: null,
+            game: createNewGame(this.state.players),
+            lastDrawData: {} as any,
         })
     }
 
     handleDraw = () => {
-        const { game } = this.state
-        const { drawnValue, moveType, distanceCovered } = game.playNextTurn()
-
         this.setState({
-            moveType,
-            distanceCovered,
-            lastDrawValue: drawnValue,
+            lastDrawData: this.state.game.playNextTurn()
         })
     }
 
@@ -74,10 +63,11 @@ export default class Game extends React.Component<IProps, IState> {
     }
 
     render() {
-        const { game, status, lastDrawValue, moveType, distanceCovered } = this.state
+        const { game, status, lastDrawData } = this.state
         const getPlayersName = status === 'init'
-        const players = game && game.getPlayers()
         const activePlayer = game && game.getActivePlayer()
+        const players = game && game.getPlayers()
+        const playersMap = game && game.playersMap
 
         return (
             <div>
@@ -102,9 +92,9 @@ export default class Game extends React.Component<IProps, IState> {
                                     )}
                                 </ul>
 
-                                <Dice onClick={this.handleDraw} value={lastDrawValue} />
+                                <Dice onClick={this.handleDraw} value={lastDrawData.drawnValue} />
 
-                                <MoveMessage moveType={moveType} distanceCovered={distanceCovered} />
+                                <MoveMessage drawData={lastDrawData} />
 
                                 <div className="button-group">
                                     <button onClick={this.handleRestart}>Restart Game</button>
@@ -115,6 +105,7 @@ export default class Game extends React.Component<IProps, IState> {
                                 <Board
                                     length={game.board.length}
                                     breadth={game.board.breadth}
+                                    playersMap={playersMap}
                                     wormholes={game.board.getWormholesMap()}
                                 />
                             </div>
@@ -126,11 +117,12 @@ export default class Game extends React.Component<IProps, IState> {
     }
 }
 
-function MoveMessage({ moveType, distanceCovered }: { moveType: IMoveType, distanceCovered: number }) {
+function MoveMessage({ drawData }: { drawData: IDrawData }) {
+    const distanceCovered = (drawData.newPosition || 0) - (drawData.standingPosition || 0)
     const message = (function () {
-        if (typeof distanceCovered !== 'number')
+        if (distanceCovered === 0 && drawData.moveType !== 'skip')
             return null
-        switch (moveType) {
+        switch (drawData.moveType) {
             case 'draw': return `Moved by ${distanceCovered} step(s).`
             case 'skip': return `Didn't move.`
             case 'roll-again': return `Scored a ${MAX_DRAW_VALUE}. Roll again!`

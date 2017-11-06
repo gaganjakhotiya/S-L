@@ -4,4 +4,5 @@ export interface IDrawData {
     moveType: IMoveType
     drawnValue: number
     newPosition: number
+    standingPosition?: number
 }

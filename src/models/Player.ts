@@ -51,20 +51,4 @@ export default class Player {
         return count % 3 === 2
     }
 
-    getLastDistanceCovered() {
-        let total = this.getHistory(0).drawnValue
-        if (total === MAX_DRAW_VALUE || typeof total === 'undefined') {
-            // Is intermediate or triple-6 or first-turn. Either ways, zero.
-            return 0
-        } else {
-            if (this.getHistory(1).drawnValue === MAX_DRAW_VALUE) {
-                total += MAX_DRAW_VALUE
-                if (this.getHistory(2).drawnValue === MAX_DRAW_VALUE) {
-                    total += MAX_DRAW_VALUE
-                }
-            }
-        }
-        return total
-    }
-
 }
