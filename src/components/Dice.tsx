@@ -12,10 +12,12 @@ interface IState {
 }
 
 function getUpdatedInterval(lastInterval = 0) {
-    return lastInterval + (100/((lastInterval || 100)/100))
+    return lastInterval + (100 / ((lastInterval || 100) / 100))
 }
 
 export default class Dice extends React.Component<IProps, IState> {
+
+    private timer: number
 
     static defaultProps = {
         maxValue: 6,
@@ -26,7 +28,10 @@ export default class Dice extends React.Component<IProps, IState> {
         this.state = {}
     }
 
-    componentWillReceiveProps(nextProps) {
+    componentWillReceiveProps(nextProps: IProps) {
+        // On restart, clear the last rolling dice
+        nextProps.value === null && window.clearTimeout(this.timer)
+        // On receiving drawn value, stop rolling dice
         this.setState({
             rollInterval: null
         })
@@ -36,9 +41,9 @@ export default class Dice extends React.Component<IProps, IState> {
         const { rollInterval } = this.state
         const updatedRollInterval = getUpdatedInterval(rollInterval)
         const newRollInterval = updatedRollInterval < 350 ? updatedRollInterval : null
-        
+
         if (newRollInterval) {
-            window.setTimeout(this.handleClick, newRollInterval)
+            this.timer = window.setTimeout(this.handleClick, newRollInterval)
             this.setState({
                 rollInterval: newRollInterval
             })
@@ -56,7 +61,7 @@ export default class Dice extends React.Component<IProps, IState> {
             <svg
                 onClick={rollInterval ? null : this.handleClick}
                 className="icon"
-                dangerouslySetInnerHTML={{__html: `<use xlink:href="#dice-${faceValue}" />`}}
+                dangerouslySetInnerHTML={{ __html: `<use xlink:href="#dice-${faceValue}" />` }}
             />
         )
     }

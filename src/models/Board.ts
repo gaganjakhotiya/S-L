@@ -2,14 +2,13 @@ import Player from './Player'
 
 import { rolldice } from '../utils'
 import { MAX_DRAW_VALUE } from '../constants'
+import { IMoveType, IDrawData } from '../types.d'
 
 type IWormhole = {
     to: number
     from: number
     type: WormholeType
 }
-
-export type IMoveType = 'skip' | 'draw' | 'snake' | 'ladder' | 'roll-again'
 
 export enum WormholeType {
     SNAKE,
@@ -67,8 +66,8 @@ export default class Board {
         return this
     }
 
-    public draw(player: Player) {
-        const standingPosition = player.position
+    public draw(player: Player): IDrawData {
+        const standingPosition = player.getIntermediatePosition()
         const drawnValue = rolldice(MAX_DRAW_VALUE)
 
         let newPosition = standingPosition + drawnValue
@@ -95,25 +94,27 @@ export default class Board {
     }
 
     public getNextBestMove(player: Player) {
-        const standingPosition = player.position
-        const nextBestLadderPosition = this.getNextBestLadder(player)
+        const standingPosition = player.getIntermediatePosition()
+        const isPlayerOnStrike = player.isOnStrike()
+        const nextBestLadderPosition = this.getNextBestLadder(standingPosition)
         const distanceFromNextBestLadder = nextBestLadderPosition - standingPosition
-        if (distanceFromNextBestLadder <= MAX_DRAW_VALUE && distanceFromNextBestLadder > 0)
+
+        if (distanceFromNextBestLadder > 0 && (
+            distanceFromNextBestLadder < MAX_DRAW_VALUE ||
+            (distanceFromNextBestLadder === MAX_DRAW_VALUE && !isPlayerOnStrike))
+        ) {
             return distanceFromNextBestLadder
-        return this.getNextSafePosition(player)
+        }
+
+        return this.getNextBestSafePosition(standingPosition, isPlayerOnStrike)
     }
 
-    private getNextSafePosition(player: Player) {
-        const standingPosition = player.position
-        const potentialSnakeBitePositions = this.getAllWormholes().filter(
-            node => node.type === WormholeType.SNAKE
-                && node.from > standingPosition
-                && node.from - standingPosition <= MAX_DRAW_VALUE
-        ).map(
-            node => node.from
-        ).sort(
-            (a, b) => a < b ? 1 : -1
-        )
+    private getNextBestSafePosition(standingPosition: number, isPlayerOnStrike: boolean) {
+        const potentialSnakeBitePositions = this.getPotentialSnakeBitePositions(standingPosition)
+
+        if (isPlayerOnStrike && potentialSnakeBitePositions[0] !== MAX_DRAW_VALUE) {
+            potentialSnakeBitePositions.unshift(standingPosition + MAX_DRAW_VALUE)
+        }
 
         let longestDistance = MAX_DRAW_VALUE
         for (const threatfulPosition of potentialSnakeBitePositions) {
@@ -124,15 +125,26 @@ export default class Board {
         return longestDistance
     }
 
-    private getNextBestLadder(player: Player) {
-        const standingPosition = player.position
+    private getPotentialSnakeBitePositions(standingPosition: number) {
+        return this.getAllWormholes().filter(
+            node => node.type === WormholeType.SNAKE
+                && node.from > standingPosition
+                && node.from - standingPosition <= MAX_DRAW_VALUE
+        ).map(
+            node => node.from
+            ).sort(
+            (a, b) => a < b ? 1 : -1
+            )
+    }
+
+    private getNextBestLadder(standingPosition: number) {
         return this.getAllWormholes().filter(
             node => node.from > standingPosition && node.type === WormholeType.LADDER
         ).sort(
             (a, b) => (a.to - a.from) < (b.to - b.from) ? 1 : -1
-        ).reduce(
+            ).reduce(
             (lastPosition, node, index) => node.from < lastPosition ? node.from : lastPosition,
             this.size
-        )
+            )
     }
 }

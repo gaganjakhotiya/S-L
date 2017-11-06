@@ -1,5 +1,6 @@
 import Board from './Board'
-import Player, { IPlayerData } from './Player'
+import Player from './Player'
+import { IDrawData } from '../types.d'
 
 export default class Game {
     private activePlayerIndex = 0
@@ -25,32 +26,36 @@ export default class Game {
     public getPlayers() {
         const activePlayer = this.getActivePlayer()
         return [...this.finishedPlayers, ...this.unfinishedPlayers].map(
-            player => ({player, active: activePlayer === player})
+            player => ({ player, active: activePlayer === player })
         )
     }
 
-    private updatePlayerPosition(player: Player, position: number) {
-        player.position = position
-        if (player.position === this.board.size) {
+    private updatePlayer(player: Player, drawData: IDrawData) {
+        const rotateStrike = player.update(drawData)
+        if (rotateStrike && player.getPosition() === this.board.size) {
             this.finishedPlayers.push(player)
             this.unfinishedPlayers.splice(this.activePlayerIndex, 1)
         }
+        return rotateStrike
     }
 
-    public playNextTurn() {
-        const activePlayer = this.unfinishedPlayers[this.activePlayerIndex]
-        const { drawnValue, newPosition, moveType } = this.board.draw(activePlayer)
-        this.updatePlayerPosition(activePlayer, newPosition)
-
+    private rotateStrike() {
         if (this.activePlayerIndex + 1 >= this.unfinishedPlayers.length) {
             this.activePlayerIndex = 0
         } else {
             this.activePlayerIndex += 1
         }
+    }
+
+    public playNextTurn() {
+        const player = this.getActivePlayer()
+        const drawData = this.board.draw(player)
+
+        this.updatePlayer(player, drawData) && this.rotateStrike()
 
         return {
-            moveType,
-            drawnValue,
+            ...drawData,
+            distanceCovered: player.getLastDistanceCovered(),
         }
     }
 
