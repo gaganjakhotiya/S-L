@@ -1,6 +1,9 @@
 import * as React from 'react'
+
 import PlayerModel from '../models/Player'
 import BoardModel from '../models/Board'
+
+import { PlayerSticker } from './Utils'
 
 
 type IBoardBlock = {
@@ -74,8 +77,4 @@ function BoardBlock(props: IBoardBlock) {
             )}
         </div>
     )
-}
-
-function PlayerSticker({ player }: { player: PlayerModel }) {
-    return <div className="player">{player.name.substr(0, 2)}</div>
 }

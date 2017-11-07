@@ -72,25 +72,30 @@ export default class Board {
         return this
     }
 
-    private getMoveType(drawnValue: number, distanceCovered: number): IMoveType {
+    private getMoveType(drawnValue: number, fromPosition: number, newPosition: number): IMoveType {
+        const distanceCovered = newPosition - fromPosition
         return distanceCovered === 0
             ? 'skip'
-            : drawnValue === MAX_DRAW_VALUE
-                ? 'roll-again'
-                : distanceCovered === drawnValue
-                    ? 'draw'
-                    : distanceCovered > 0
-                        ? 'ladder'
-                        : 'snake'
+            : newPosition === this.size
+                ? 'draw'
+                : drawnValue === MAX_DRAW_VALUE
+                    ? 'roll-again'
+                    : distanceCovered === drawnValue
+                        ? 'draw'
+                        : distanceCovered > 0
+                            ? 'ladder'
+                            : 'snake'
     }
 
     private getNewPosition(drawnValue: number, fromPosition: number) {
         const newStep = fromPosition + drawnValue
         return newStep > this.size
             ? fromPosition
-            : drawnValue === MAX_DRAW_VALUE
+            : newStep === this.size
                 ? newStep
-                : this.wormholesFromMap[newStep] || newStep
+                : drawnValue === MAX_DRAW_VALUE
+                    ? newStep
+                    : this.wormholesFromMap[newStep] || newStep
     }
 
     public draw(player: Player): IDrawData {
@@ -98,7 +103,7 @@ export default class Board {
         const fromPosition = player.getIntermediatePosition()
         const drawnValue = rolldice(MAX_DRAW_VALUE)
         const newPosition = this.getNewPosition(drawnValue, fromPosition)
-        const moveType = this.getMoveType(drawnValue, newPosition - fromPosition)
+        const moveType = this.getMoveType(drawnValue, fromPosition, newPosition)
 
         return {
             moveType,
