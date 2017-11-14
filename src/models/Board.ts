@@ -1,7 +1,7 @@
 import Player from './Player'
 
 import { rolldice } from '../utils'
-import { MAX_DRAW_VALUE } from '../constants'
+import { MAX_DRAW_VALUE, MAX_SIMPLE_MOVE } from '../constants'
 import { IMoveType, IDrawData } from '../types.d'
 
 type IWormhole = {
@@ -113,58 +113,58 @@ export default class Board {
         }
     }
 
-    public getNextBestMove(player: Player) {
-        const fromPosition = player.getIntermediatePosition()
-        const isPlayerOnStrike = player.isOnStrike()
-        const nextBestLadderPosition = this.getNextBestLadder(fromPosition)
-        const distanceFromNextBestLadder = nextBestLadderPosition - fromPosition
-
-        if (distanceFromNextBestLadder > 0 && (
-            distanceFromNextBestLadder < MAX_DRAW_VALUE ||
-            (distanceFromNextBestLadder === MAX_DRAW_VALUE && !isPlayerOnStrike))
-        ) {
-            return distanceFromNextBestLadder
+    private getBestPath(from: number, maxMove: number, visitedNodes: { [from: number]: number } = {}, draws = []) {
+        if (this.size - from <= maxMove) {
+            return [...draws, this.size - from]
         }
 
-        return this.getNextBestSafePosition(fromPosition, isPlayerOnStrike)
+        let maxDrawnSteps = Number.POSITIVE_INFINITY
+        return this.getPotentialForksInPath(from, maxMove, visitedNodes).reduce((bestDraws, diff) => {
+            const positionInFocus = from + diff
+            const newPosition = this.wormholesFromMap[positionInFocus] || positionInFocus
+            const newMaxMove = diff === MAX_DRAW_VALUE ? maxMove - MAX_DRAW_VALUE : MAX_SIMPLE_MOVE
+            const newDrawsList = this.getBestPath(
+                newPosition, newMaxMove, { ...visitedNodes, [positionInFocus]: newPosition }, [...draws, diff]
+            )
+
+            if (maxDrawnSteps > newDrawsList.length) {
+                maxDrawnSteps = newDrawsList.length
+                return newDrawsList
+            } else {
+                return bestDraws
+            }
+        }, draws)
     }
 
-    private getNextBestSafePosition(fromPosition: number, isPlayerOnStrike: boolean) {
-        const potentialSnakeBitePositions = this.getPotentialSnakeBitePositions(fromPosition)
+    private getPotentialForksInPath(from: number, maxMove: number, visitedNodes: { [from: number]: number }) {
+        const potentialForks = []
 
-        if (isPlayerOnStrike && potentialSnakeBitePositions[0] !== MAX_DRAW_VALUE) {
-            potentialSnakeBitePositions.unshift(fromPosition + MAX_DRAW_VALUE)
+        let positionDifference = 1
+        while (positionDifference <= maxMove && positionDifference + from <= this.size) {
+            const positionInFocus = from + positionDifference
+            if (!visitedNodes[positionInFocus] &&
+                (positionDifference === maxMove ||
+                    (positionDifference !== MAX_DRAW_VALUE &&
+                        this.wormholesFromMap[positionInFocus] !== undefined))) {
+                potentialForks.push(positionDifference)
+            }
+            positionDifference++
         }
 
-        let longestDistance = MAX_DRAW_VALUE
-        for (const threatfulPosition of potentialSnakeBitePositions) {
-            if (longestDistance !== threatfulPosition - fromPosition)
-                return longestDistance
-            longestDistance--
-        }
-        return longestDistance
+        return potentialForks
     }
 
-    private getPotentialSnakeBitePositions(fromPosition: number) {
-        return this.getAllWormholes().filter(
-            node => node.type === WormholeType.SNAKE
-                && node.from > fromPosition
-                && node.from - fromPosition <= MAX_DRAW_VALUE
-        ).map(
-            node => node.from
-        ).sort(
-            (a, b) => a < b ? 1 : -1
-        )
-    }
-
-    private getNextBestLadder(fromPosition: number) {
-        return this.getAllWormholes().filter(
-            node => node.from > fromPosition && node.type === WormholeType.LADDER
-        ).sort(
-            (a, b) => (a.to - a.from) < (b.to - b.from) ? 1 : -1
-        ).reduce(
-            (lastPosition, node, index) => node.from < lastPosition ? node.from : lastPosition,
-            this.size
-        )
+    public getBestMovesList(player: Player) {
+        const from = player.getIntermediatePosition()
+        const maxMove = MAX_SIMPLE_MOVE - (player.getPreviousScoresInARowCount() * MAX_DRAW_VALUE)
+        return this.getBestPath(from, maxMove).map(number => {
+            const draws = []
+            while (number > 6) {
+                draws.push(6)
+                number -= 6
+            }
+            number && draws.push(number)
+            return draws
+        })
     }
 }

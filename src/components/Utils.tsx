@@ -30,8 +30,10 @@ export function PlayersSummary({ game }: {game: GameModel}) {
                     ({ player, active }, index) => (
                         <li key={index} className={active ? 'active' : ''}>
                             <span>{player.name} : {player.getPosition()}</span>
-                            {player.getPosition() !== game.board.size && (
-                                <span> (Perfect Draw: {game.board.getNextBestMove(player)})</span>
+                            {game.getActivePlayer() === player && (
+                                <span> (Perfect Draw: {game.board.getBestMovesList(player).map(
+                                    (draws, index) => <span key={index} className="draws-border">{draws.toString()}</span>
+                                )})</span>
                             )}
                         </li>
                     )

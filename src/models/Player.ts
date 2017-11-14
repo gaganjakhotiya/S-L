@@ -41,14 +41,18 @@ export default class Player {
     }
 
     isOnStrike() {
+        return this.getPreviousScoresInARowCount() % 3 === 2
+    }
+
+    getPreviousScoresInARowCount(value = MAX_DRAW_VALUE) {
         let count = 0
         for (let indexFromTail = 0; indexFromTail < this._history.length; indexFromTail++) {
-            if (this.getHistory(indexFromTail).drawnValue !== MAX_DRAW_VALUE)
+            if (this.getHistory(indexFromTail).drawnValue !== value)
                 break
             else
                 count++
         }
-        return count % 3 === 2
+        return count
     }
 
 }
